@@ -8,6 +8,7 @@ export interface TextToSpeechState {
   isPaused: boolean;
   error?: string;
   currentText?: string;
+  isActivated?: boolean;
 }
 
 interface UseWebSpeechTTSProps {
@@ -37,17 +38,23 @@ export const useWebSpeechTTS = ({
     isSupported: false,
     isSpeaking: false,
     isPaused: false,
+    isActivated: false, // ✅ Requires user gesture to unlock due to browser autoplay policy
   });
 
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const userInteractionDetectedRef = useRef(false);
 
   // Check for browser support
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
-      setState(prev => ({ ...prev, isSupported: true }));
+      setState(prev => ({ 
+        ...prev, 
+        isSupported: true
+        // ✅ isActivated stays false until user gesture unlocks audio
+      }));
       
       // Load voices
       const loadVoices = () => {
@@ -71,12 +78,26 @@ export const useWebSpeechTTS = ({
     }
   }, []);
 
+  // ✅ ACCESSIBILITY: Use speech recognition user interaction to unlock TTS
+  const activateFromUserInteraction = useCallback(() => {
+    if (!synthRef.current || userInteractionDetectedRef.current) {
+      return;
+    }
+
+    console.log('🔓 Speech recognition detected - marking user interaction');
+    userInteractionDetectedRef.current = true;
+    
+    // ✅ DON'T ATTEMPT TTS YET: Just mark that we have user interaction
+    // The actual TTS will be unlocked when user says activation command or clicks button
+    setState(prev => ({ ...prev, error: undefined }));
+    
+  }, []);
+
   // Get the best voice for the selected language
   const getVoice = useCallback((): SpeechSynthesisVoice | null => {
     const voices = voicesRef.current;
     if (!voices.length) return null;
 
-    // Language codes for Vietnamese and English
     const langCodes = {
       vietnamese: ['vi-VN', 'vi'],
       english: ['en-US', 'en-GB', 'en']
@@ -84,7 +105,6 @@ export const useWebSpeechTTS = ({
 
     const targetLangs = langCodes[language];
     
-    // Try to find a voice that matches the target language
     for (const lang of targetLangs) {
       const voice = voices.find(v => v.lang.startsWith(lang));
       if (voice) {
@@ -93,12 +113,102 @@ export const useWebSpeechTTS = ({
       }
     }
 
-    // Fallback to default voice
     console.log('🔊 Using default voice');
     return voices[0] || null;
   }, [language]);
 
-  // Speak text using Web Speech API
+  // ✅ MANUAL ACTIVATION: Required to unlock TTS due to browser autoplay policies
+  const manualActivateTTS = useCallback(() => {
+    return new Promise<boolean>((resolve) => {
+      console.log('🔓 Manual TTS activation via user gesture');
+      
+      if (!window.speechSynthesis) {
+        console.error('❌ speechSynthesis not available');
+        resolve(false);
+        return;
+      }
+
+      // Following Web Speech API documentation exactly
+      try {
+        // Cancel any existing speech as per documentation
+        window.speechSynthesis.cancel();
+        
+        // Create test utterance following documentation pattern - keep it short to minimize feedback risk
+        const testUtterance = new SpeechSynthesisUtterance('Đã kích hoạt chức năng đọc.');
+        testUtterance.lang = 'vi-VN';
+        testUtterance.rate = 1.2; // Speak a bit faster to reduce duration
+        testUtterance.pitch = 1.0;
+        testUtterance.volume = 0.8; // Slightly quieter to reduce feedback risk
+        
+        // Set event handlers as shown in documentation
+        testUtterance.onstart = function() {
+          console.log('✅ TTS successfully unlocked by user gesture');
+          setState(prev => ({ ...prev, isActivated: true, error: undefined }));
+          resolve(true);
+        };
+        
+        testUtterance.onend = function() {
+          console.log('🔊 TTS activation completed - now ready for automatic responses');
+        };
+        
+        testUtterance.onerror = function(event) {
+          console.error('❌ TTS activation failed:', event.error);
+          let errorMessage = 'Không thể kích hoạt chức năng đọc';
+          if (event.error === 'not-allowed') {
+            errorMessage = 'Trình duyệt chặn chức năng đọc. Vui lòng cho phép âm thanh trong cài đặt trình duyệt.';
+          }
+          setState(prev => ({ 
+            ...prev, 
+            isActivated: false, 
+            error: errorMessage
+          }));
+          resolve(false);
+        };
+        
+        // Speak using global API as per documentation
+        window.speechSynthesis.speak(testUtterance);
+        
+      } catch (error) {
+        console.error('❌ Manual activation failed:', error);
+        setState(prev => ({ 
+          ...prev, 
+          isActivated: false, 
+          error: 'Không thể kích hoạt chức năng đọc' 
+        }));
+        resolve(false);
+      }
+    });
+  }, []);
+
+  // ✅ VOICE ACTIVATION: Only works AFTER manual activation due to browser policies
+  const handleVoiceActivation = useCallback((text: string) => {
+    const lowerText = text.toLowerCase().trim();
+    
+    // Check for activation voice commands
+    if (lowerText.includes('kích hoạt đọc') || 
+        lowerText.includes('bật đọc') || 
+        lowerText.includes('cho phép đọc') ||
+        lowerText.includes('khởi động đọc')) {
+      
+      console.log('🎤 Voice activation command detected');
+      
+      // ✅ SECURITY REALITY: Voice commands can't reliably unlock TTS due to browser policies
+      // Provide clear guidance to user
+      setState(prev => ({ 
+        ...prev, 
+        isActivated: false, 
+        error: 'Để kích hoạt chức năng đọc, vui lòng nhấn nút "Kích hoạt đọc" bên dưới' 
+      }));
+      
+      onError?.('Để kích hoạt chức năng đọc, vui lòng nhấn nút "Kích hoạt đọc" bên dưới');
+      
+      return true; // Indicates this was an activation command
+    }
+    
+    return false;
+  }, [onError]);
+
+  // ✅ MAIN SPEAK FUNCTION: Following Web Speech API documentation with proper security handling
   const speak = useCallback(async (text: string) => {
     if (!state.isSupported || !synthRef.current) {
       const error = 'Speech synthesis not available';
@@ -112,32 +222,44 @@ export const useWebSpeechTTS = ({
       return;
     }
 
-    // Stop any current speech
-    stopSpeech();
+    // ✅ BROWSER AUTOPLAY POLICY: Check if TTS is unlocked by user gesture
+    if (!state.isActivated) {
+      console.log('🔒 TTS blocked by browser autoplay policy - needs user gesture');
+      const errorMessage = 'Chức năng đọc cần được kích hoạt bằng một cú nhấp hoặc chạm';
+      setState(prev => ({ ...prev, error: errorMessage }));
+      onError?.(errorMessage);
+      return;
+    }
 
     try {
+      // Stop any current speech first
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
       console.log('🔊 Starting speech synthesis:', text.substring(0, 50) + '...');
       
-      // Create utterance as per Web Speech API documentation
+      // ✅ FOLLOWING WEB SPEECH API DOCUMENTATION EXACTLY
+      // Cancel any existing speech first as per documentation
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      
       const utterance = new SpeechSynthesisUtterance(text);
       
-      // Configure utterance
       utterance.rate = rate;
       utterance.pitch = pitch;
       utterance.volume = volume;
       
-      // Set voice
       const selectedVoice = getVoice();
       if (selectedVoice) {
         utterance.voice = selectedVoice;
         utterance.lang = selectedVoice.lang;
       } else {
-        // Set fallback language
         utterance.lang = language === 'vietnamese' ? 'vi-VN' : 'en-US';
       }
 
-      // Set up event handlers as per Web Speech API examples
-      utterance.onstart = () => {
+      // Set event handlers as shown in documentation
+      utterance.onstart = function() {
         console.log('🔊 Speech synthesis started');
         setState(prev => ({
           ...prev,
@@ -149,7 +271,7 @@ export const useWebSpeechTTS = ({
         onStart?.();
       };
 
-      utterance.onend = () => {
+      utterance.onend = function() {
         console.log('🔊 Speech synthesis ended');
         setState(prev => ({
           ...prev,
@@ -161,8 +283,24 @@ export const useWebSpeechTTS = ({
         onEnd?.();
       };
 
-      utterance.onerror = (event) => {
+      utterance.onerror = function(event) {
         console.error('🚫 Speech synthesis error:', event.error);
+        
+        if (event.error === 'not-allowed') {
+          console.log('🎤 TTS blocked - user needs to reactivate');
+          const guidanceMessage = 'Chức năng đọc bị chặn. Vui lòng nhấn nút "Kích hoạt đọc" để sử dụng lại';
+          setState(prev => ({
+            ...prev,
+            isSpeaking: false,
+            isPaused: false,
+            error: guidanceMessage,
+            currentText: undefined,
+            isActivated: false, // Reset activation status
+          }));
+          onError?.(guidanceMessage);
+          return;
+        }
+        
         const errorMessage = `Speech synthesis error: ${event.error}`;
         setState(prev => ({
           ...prev,
@@ -175,23 +313,26 @@ export const useWebSpeechTTS = ({
         onError?.(errorMessage);
       };
 
-      utterance.onpause = () => {
+      utterance.onpause = function() {
         console.log('⏸️ Speech synthesis paused');
         setState(prev => ({ ...prev, isPaused: true }));
         onPause?.();
       };
 
-      utterance.onresume = () => {
+      utterance.onresume = function() {
         console.log('▶️ Speech synthesis resumed');
         setState(prev => ({ ...prev, isPaused: false }));
         onResume?.();
       };
 
-      // Store current utterance
       currentUtteranceRef.current = utterance;
-
-      // Start speaking
-      synthRef.current.speak(utterance);
+      
+      // ✅ USE GLOBAL API AS PER DOCUMENTATION
+      if (window.speechSynthesis) {
+        window.speechSynthesis.speak(utterance);
+      } else {
+        synthRef.current.speak(utterance);
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'TTS generation failed';
@@ -207,7 +348,13 @@ export const useWebSpeechTTS = ({
       
       onError?.(errorMessage);
     }
-  }, [state.isSupported, language, rate, pitch, volume, getVoice, onStart, onEnd, onError, onPause, onResume]);
+  }, [state.isSupported, state.isActivated, language, rate, pitch, volume, getVoice, onStart, onEnd, onError, onPause, onResume]);
+
+  // Mark that user interaction has been detected (call this when speech recognition starts)
+  const notifyUserInteraction = useCallback(() => {
+    console.log('🎤 User interaction detected via speech recognition');
+    activateFromUserInteraction();
+  }, [activateFromUserInteraction]);
 
   // Pause current speech
   const pause = useCallback(() => {
@@ -276,8 +423,10 @@ export const useWebSpeechTTS = ({
     getVoices,
     isSpeaking,
     isPaused,
+    notifyUserInteraction, // ✅ New method to signal user interaction from speech recognition
+    manualActivateTTS, // ✅ Manual activation function for browser security compliance
     
     // Utilities
-    cancel: stopSpeech, // Alias for compatibility
+    cancel: stopSpeech,
   };
 }; 

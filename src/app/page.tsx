@@ -191,6 +191,15 @@ export default function HomePage() {
       return;
     }
     
+
+    
+    // Handle stop commands
+    if (lowerCommand.includes('dừng trò chuyện') || lowerCommand.includes('tắt') || lowerCommand.includes('ngừng')) {
+      console.log('🛑 Stop command detected');
+      setAgentResponse('Đã dừng trò chuyện. Nói bất kỳ điều gì để bắt đầu lại.');
+      return;
+    }
+    
     if (!currentThread || !currentAssistant) {
       console.log('❌ Missing thread or assistant:', { currentThread, currentAssistant });
       setAgentResponse('Chưa kết nối được với agent. Vui lòng thử lại.');
