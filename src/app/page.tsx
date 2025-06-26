@@ -48,6 +48,8 @@ export default function HomePage() {
   }, []);
 
   const updateDocument = useCallback((updatedDoc: Document) => {
+    console.log('🔄 updateDocument - Setting current page to:', updatedDoc.current_page);
+    
     setDocuments(prev => prev.map(doc => 
       doc.id === updatedDoc.id ? updatedDoc : doc
     ));
@@ -105,6 +107,7 @@ export default function HomePage() {
         title: 'Tài liệu mới',
         pages: [{
           id: uuidv4(),
+          title: '', // Add title field
           content: '',
           page_number: 1,
           created_at: new Date().toISOString(),
@@ -129,6 +132,7 @@ export default function HomePage() {
         title: 'Tài liệu mới',
         pages: [{
           id: uuidv4(),
+          title: '', // Add title field
           content: '',
           page_number: 1,
           created_at: new Date().toISOString(),
@@ -152,6 +156,7 @@ export default function HomePage() {
         title: 'Tài liệu mẫu 1',
         pages: [{
           id: uuidv4(),
+          title: 'Trang giới thiệu', // Add title field
           content: 'Đây là nội dung của tài liệu mẫu đầu tiên. Bạn có thể chỉnh sửa hoặc xóa nó.',
           page_number: 1,
           created_at: new Date().toISOString(),
@@ -166,6 +171,7 @@ export default function HomePage() {
         title: 'Hướng dẫn sử dụng',
         pages: [{
           id: uuidv4(),
+          title: 'Hướng dẫn cơ bản', // Add title field
           content: 'Sử dụng lệnh giọng nói để:\n- Tạo tài liệu mới\n- Tìm kiếm thông tin\n- Chỉnh sửa nội dung\n- Xóa tài liệu',
           page_number: 1,
           created_at: new Date(Date.now() - 86400000).toISOString(),
@@ -454,13 +460,14 @@ export default function HomePage() {
         const newDoc: Document = {
           id: uuidv4(),
           title: extractTitleFromContent(actionContent) || 'Tài liệu mới',
-          pages: [{
-            id: uuidv4(),
-            content: actionContent,
-            page_number: 1,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }],
+                  pages: [{
+          id: uuidv4(),
+          title: '', // Add title field
+          content: actionContent,
+          page_number: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }],
           current_page: 1,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -541,6 +548,40 @@ export default function HomePage() {
         }
         break;
 
+      case 'add_page':
+        console.log('📄 Adding new page');
+        if (currentDocument) {
+          const newPageNumber = currentDocument.pages.length + 1;
+          console.log('📄 Agent creating new page number:', newPageNumber);
+          
+          const newPage = {
+            id: uuidv4(),
+            title: '', // Add title field for new pages
+            content: '',
+            page_number: newPageNumber,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          
+          const updatedDoc = {
+            ...currentDocument,
+            pages: [...currentDocument.pages, newPage],
+            current_page: newPageNumber, // Automatically switch to the new page
+            updated_at: new Date().toISOString(),
+          };
+          
+          console.log('📋 Agent updated document with new page:', updatedDoc);
+          console.log('🎯 Agent setting current page to:', newPageNumber);
+          
+          updateDocument(updatedDoc);
+          const response = answer || `Đã tạo trang mới số ${newPageNumber}. Bạn đang ở trang ${newPageNumber}.`;
+          setAgentResponse(response);
+        } else {
+          const response = answer || 'Không có tài liệu nào được chọn để tạo trang mới.';
+          setAgentResponse(response);
+        }
+        break;
+
       case 'next_page':
         console.log('➡️ Moving to next page');
         if (currentDocument) {
@@ -549,7 +590,7 @@ export default function HomePage() {
               ...currentDocument,
               current_page: currentDocument.current_page + 1,
             };
-            setCurrentDocument(updatedDoc);
+            updateDocument(updatedDoc);
             const response = answer || `Đã chuyển đến trang ${updatedDoc.current_page}.`;
             setAgentResponse(response);
           } else {
@@ -570,7 +611,7 @@ export default function HomePage() {
               ...currentDocument,
               current_page: currentDocument.current_page - 1,
             };
-            setCurrentDocument(updatedDoc);
+            updateDocument(updatedDoc);
             const response = answer || `Đã chuyển về trang ${updatedDoc.current_page}.`;
             setAgentResponse(response);
           } else {
@@ -850,6 +891,7 @@ export default function HomePage() {
         title: data.title,
         pages: [{
           id: uuidv4(),
+          title: '', // Add title field
           content: data.content,
           page_number: 1,
           created_at: now,
@@ -889,159 +931,287 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Simple Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 px-6 py-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            WriteSense
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Tạo tài liệu bằng giọng nói - Ứng dụng đã sẵn sàng nghe
-          </p>
-          <div className="mt-2 text-sm text-blue-600 font-medium">
-            🎤 Bạn có thể bắt đầu nói ngay bây giờ
+    <div className="min-h-screen max-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      {/* Compact Header */}
+      <header className="bg-black/20 backdrop-blur-2xl border-b border-white/10 shadow-2xl">
+        <div className="mx-auto px-8 py-4">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            {/* Logo & Title */}
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mr-3 shadow-2xl shadow-purple-500/25">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  WriteSense
+                </h1>
+                <p className="text-xs text-purple-300 -mt-0.5">AI Voice Document Creation</p>
+              </div>
+            </div>
+
+            {/* Center: Document Info */}
+            {currentDocument && (
+              <div className="flex-1 max-w-lg mx-8 text-center">
+                <div className="text-lg font-semibold text-white truncate">
+                  {currentDocument.title}
+                </div>
+                <div className="text-sm text-purple-300 mt-0.5">
+                  Page {currentDocument.current_page} of {currentDocument.pages.length} • {new Date(currentDocument.updated_at).toLocaleString('vi-VN', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Voice Status - Prominent */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm border border-green-400/30 rounded-full px-4 py-2">
+                <div className="w-3 h-3 bg-green-400 rounded-full mr-3 animate-pulse shadow-lg shadow-green-400/50"></div>
+                <span className="text-sm font-semibold text-green-300">VOICE ACTIVE</span>
+              </div>
+              {currentDocument && (
+                <div className={`px-4 py-2 rounded-full text-sm font-medium border ${
+                  isEditing 
+                    ? 'bg-orange-500/20 text-orange-300 border-orange-400/30' 
+                    : 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+                }`}>
+                  {isEditing ? 'EDITING' : 'VIEWING'}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content - Simplified Single Column */}
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        {/* Voice Status Bar */}
-        <div className="mb-6">
-          <VoiceController
-            onVoiceCommand={handleVoiceCommand}
-            agentResponse={agentResponse}
-            isProcessing={isProcessing}
-            autoStart={isInteractionMode}
-          />
-        </div>
-
-        {/* Document Content - Main Focus */}
-        <div className="bg-white rounded-lg shadow-lg p-8 min-h-[400px]">
-          {currentDocument ? (
-            <div>
-              {/* Document Title */}
-              <div className="mb-6 border-b border-gray-200 pb-4">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  {currentDocument.title}
+      {/* Compact Layout - Voice First */}
+      <main className="flex h-[calc(100vh-80px)]">
+        {/* HERO: Voice Control Center - Streamlined */}
+        <div className="w-80 bg-gradient-to-b from-purple-900/50 to-slate-900/50 backdrop-blur-xl border-r border-white/10 flex flex-col relative overflow-hidden">
+          {/* Animated Background Effects */}
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-600/10 to-pink-600/10"></div>
+          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/5 to-transparent"></div>
+          
+          {/* Voice Control Hero Section - Centered */}
+          <div className="relative z-10 flex-1 flex items-center justify-center p-6">
+            <div className="w-full max-w-sm text-center">
+              {/* Main Voice Indicator */}
+              <div className="mb-6">
+                <div className="w-28 h-28 mx-auto mb-4 relative">
+                  {/* Pulsing Rings */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 animate-ping"></div>
+                  <div className="absolute inset-2 rounded-full bg-gradient-to-br from-purple-500/40 to-pink-500/40 animate-pulse"></div>
+                  <div className="absolute inset-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-2xl shadow-purple-500/25 flex items-center justify-center">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </div>
+                </div>
+                
+                <h2 className="text-xl font-bold text-white mb-2">
+                  Voice Control
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Cập nhật lần cuối: {new Date(currentDocument.updated_at).toLocaleString('vi-VN')}
+                <p className="text-purple-300 text-sm">
+                  Speak naturally to create and edit documents
                 </p>
               </div>
+              
+              <VoiceController
+                onVoiceCommand={handleVoiceCommand}
+                agentResponse={agentResponse}
+                isProcessing={isProcessing}
+                autoStart={isInteractionMode}
+              />
+            </div>
+          </div>
+        </div>
 
-              {/* Document Content */}
-              <div className="prose max-w-none">
-                {(() => {
-                  const currentPage = getCurrentPage(currentDocument);
-                  return currentPage && currentPage.content ? (
-                    <div>
-                      {/* Page Navigation */}
-                      <div className="flex items-center justify-between mb-4 p-2 bg-gray-50 rounded">
-                        <div className="text-sm text-gray-600">
-                          Trang {currentDocument.current_page} / {currentDocument.pages.length}
-                          {currentPage.title && ` - ${currentPage.title}`}
-                        </div>
-                        <div className="flex space-x-2">
+        {/* Document Workspace - Optimized for viewport */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 p-6 overflow-auto">
+            <div className="max-w-5xl mx-auto h-full">
+              {currentDocument ? (
+                <div className="h-full flex flex-col">
+                  {(() => {
+                    const currentPage = getCurrentPage(currentDocument);
+                    return currentPage ? (
+                      <div className="h-full flex flex-col space-y-4">
+                        {/* Compact Page Navigation */}
+                        <div className="flex items-center justify-between bg-black/20 backdrop-blur-xl rounded-xl p-4 border border-white/10 flex-shrink-0">
                           <button
                             onClick={() => {
                               if (currentDocument.current_page > 1) {
                                 const updatedDoc = { ...currentDocument, current_page: currentDocument.current_page - 1 };
-                                setCurrentDocument(updatedDoc);
+                                updateDocument(updatedDoc);
                               }
                             }}
                             disabled={currentDocument.current_page <= 1}
-                            className="px-2 py-1 text-xs bg-blue-500 text-white rounded disabled:bg-gray-300"
+                            className="group flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
                           >
-                            ← Trước
+                            <svg className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Previous
                           </button>
+                          
+                          <div className="text-center px-6">
+                            <div className="text-lg font-bold text-white">
+                              Page {currentDocument.current_page} / {currentDocument.pages.length}
+                            </div>
+                            {currentPage.title && (
+                              <div className="text-purple-300 text-sm mt-1 max-w-xs truncate">
+                                "{currentPage.title}"
+                              </div>
+                            )}
+                          </div>
+                          
                           <button
                             onClick={() => {
                               if (currentDocument.current_page < currentDocument.pages.length) {
                                 const updatedDoc = { ...currentDocument, current_page: currentDocument.current_page + 1 };
-                                setCurrentDocument(updatedDoc);
+                                updateDocument(updatedDoc);
                               }
                             }}
                             disabled={currentDocument.current_page >= currentDocument.pages.length}
-                            className="px-2 py-1 text-xs bg-blue-500 text-white rounded disabled:bg-gray-300"
+                            className="group flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-lg hover:shadow-xl hover:scale-105 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
                           >
-                            Sau →
+                            Next
+                            <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
                           </button>
                         </div>
+                        
+                        {/* Document Display - Fit to remaining height */}
+                        <div className="flex-1 min-h-0">
+                          {currentPage.content ? (
+                            <div className="h-full">
+                              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden h-full flex flex-col">
+                                {/* Document Header */}
+                                {currentPage.title && (
+                                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-8 py-4 border-b border-gray-100 flex-shrink-0">
+                                    <h1 className="text-2xl font-bold text-gray-900">{currentPage.title}</h1>
+                                  </div>
+                                )}
+                                
+                                {/* Document Content */}
+                                <div className="p-8 flex-1 overflow-auto">
+                                  <div className="prose prose-lg max-w-none">
+                                    <div className="whitespace-pre-wrap text-gray-800 leading-relaxed font-['Charter',_'Georgia',_serif] text-lg leading-7">
+                                      {currentPage.content}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Document Footer */}
+                                <div className="bg-gray-50 px-8 py-3 border-t border-gray-100 flex justify-between items-center flex-shrink-0">
+                                  <div className="text-sm text-gray-500">{currentPage.content.length} characters</div>
+                                  <div className="text-sm text-gray-500">Last updated {new Date(currentPage.updated_at).toLocaleString('vi-VN')}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 backdrop-blur-xl border-2 border-dashed border-purple-400/30 rounded-2xl p-16 text-center h-full flex items-center justify-center">
+                              <div className="max-w-lg mx-auto">
+                                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-purple-500/25">
+                                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                  </svg>
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-4">
+                                  Page {currentPage.page_number} is Empty
+                                </h3>
+                                {currentPage.title && (
+                                  <div className="text-purple-300 text-lg mb-6">"{currentPage.title}"</div>
+                                )}
+                                <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm rounded-xl p-4 border border-green-400/30">
+                                  <div className="flex items-center justify-center mb-2">
+                                    <div className="w-3 h-3 bg-green-400 rounded-full mr-3 animate-pulse shadow-lg shadow-green-400/50"></div>
+                                    <span className="text-lg font-bold text-green-300">LISTENING</span>
+                                  </div>
+                                  <p className="text-green-200">
+                                    Start speaking to add content to this page
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {/* Page Content */}
-                      <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                        {currentPage.content}
+                    ) : (
+                      <div className="bg-gradient-to-br from-slate-800/50 to-purple-900/50 backdrop-blur-xl rounded-2xl p-16 text-center h-full flex items-center justify-center border border-white/10">
+                        <div className="max-w-lg mx-auto">
+                          <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-purple-500/25">
+                            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-2xl font-bold text-white mb-4">
+                            Document is Empty
+                          </h3>
+                          <p className="text-purple-300 mb-6">
+                            Use voice commands to create content for this document
+                          </p>
+                          <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm rounded-xl p-4 border border-green-400/30">
+                            <div className="flex items-center justify-center mb-2">
+                              <div className="w-3 h-3 bg-green-400 rounded-full mr-3 animate-pulse shadow-lg shadow-green-400/50"></div>
+                              <span className="text-lg font-bold text-green-300">READY TO LISTEN</span>
+                            </div>
+                            <p className="text-green-200">
+                              Try: "Write about..." or "Create document about..."
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="bg-gradient-to-br from-slate-800/30 to-purple-900/30 backdrop-blur-2xl rounded-2xl p-20 text-center h-full flex items-center justify-center border border-white/10">
+                  <div className="max-w-xl mx-auto">
+                    <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-purple-500/25 relative">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400/30 to-pink-400/30 animate-ping"></div>
+                      <svg className="w-16 h-16 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                    </div>
+                    <h2 className="text-4xl font-bold text-white mb-4">
+                      Welcome to WriteSense
+                    </h2>
+                    <p className="text-xl text-purple-300 mb-8">
+                      The Future of Voice-Powered Document Creation
+                    </p>
+                    <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl p-6 border border-blue-400/30">
+                      <h3 className="text-lg font-bold text-blue-300 mb-4">🚀 Get Started Instantly</h3>
+                      <div className="grid grid-cols-2 gap-3 text-left">
+                        <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                          <div className="text-sm font-semibold text-white mb-1">🎤 "Create new document"</div>
+                          <div className="text-purple-300 text-xs">Start fresh</div>
+                        </div>
+                        <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                          <div className="text-sm font-semibold text-white mb-1">✍️ "Write about [topic]"</div>
+                          <div className="text-purple-300 text-xs">Generate content</div>
+                        </div>
+                        <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                          <div className="text-sm font-semibold text-white mb-1">📄 "Next page"</div>
+                          <div className="text-purple-300 text-xs">Navigate</div>
+                        </div>
+                        <div className="bg-black/20 rounded-lg p-3 border border-white/10">
+                          <div className="text-sm font-semibold text-white mb-1">🔊 "Read this page"</div>
+                          <div className="text-purple-300 text-xs">Hear content</div>
+                        </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-gray-600 text-center py-12">
-                      <div className="text-xl mb-4 font-medium">
-                        {currentPage ? `Trang ${currentPage.page_number} trống` : 'Tài liệu trống'}
-                      </div>
-                      <div className="text-lg mb-2 text-blue-600">
-                        🎤 Ứng dụng đang nghe - Hãy bắt đầu nói
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Ví dụ: "Tạo tài liệu về..." hoặc "Viết về chủ đề..."<br/>
-                        Dừng nói khoảng 3-5 giây để ứng dụng xử lý
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-lg">
-                Chưa có tài liệu nào được chọn
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Simple Document Actions */}
-        {currentDocument && (
-          <div className="mt-6 flex justify-center space-x-4">
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-            >
-              {isEditing ? 'Xem tài liệu' : 'Chỉnh sửa'}
-            </button>
-            <button
-              onClick={() => {
-                // Add new page
-                const newPageNumber = currentDocument.pages.length + 1;
-                const newPage = {
-                  id: uuidv4(),
-                  content: '',
-                  page_number: newPageNumber,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                };
-                const updatedDoc = {
-                  ...currentDocument,
-                  pages: [...currentDocument.pages, newPage],
-                  current_page: newPageNumber,
-                  updated_at: new Date().toISOString(),
-                };
-                updateDocument(updatedDoc);
-                setAgentResponse(`Đã tạo trang mới số ${newPageNumber}.`);
-              }}
-              className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
-            >
-              Trang mới
-            </button>
-            <button
-              onClick={handleDocumentCreate}
-              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-            >
-              Tài liệu mới
-            </button>
           </div>
-        )}
+        </div>
       </main>
     </div>
   );

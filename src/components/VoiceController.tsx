@@ -298,29 +298,29 @@ export const VoiceController: React.FC<VoiceControllerProps> = ({
         return {
           text: 'Đang nghe...',
           icon: Mic,
-          color: 'text-green-600',
-          bgColor: 'bg-green-100'
+          color: 'text-green-300',
+          bgColor: 'bg-green-500/20 border-green-400/30'
         };
       case 'processing':
         return {
           text: 'Đang xử lý...',
           icon: MicOff,
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-100'
+          color: 'text-purple-300',
+          bgColor: 'bg-purple-500/20 border-purple-400/30'
         };
       case 'speaking':
         return {
           text: 'Đang nói...',
           icon: Volume2,
-          color: 'text-blue-600',
-          bgColor: 'bg-blue-100'
+          color: 'text-blue-300',
+          bgColor: 'bg-blue-500/20 border-blue-400/30'
         };
       default:
         return {
           text: 'Sẵn sàng nghe',
           icon: MicOff,
-          color: 'text-gray-600',
-          bgColor: 'bg-gray-100'
+          color: 'text-gray-300',
+          bgColor: 'bg-gray-500/20 border-gray-400/30'
         };
     }
   };
@@ -333,38 +333,38 @@ export const VoiceController: React.FC<VoiceControllerProps> = ({
   const hasError = sttError || ttsError;
 
   return (
-    <div className="flex flex-col items-center space-y-4 p-6 bg-white rounded-lg shadow-lg">
-      {/* Status Display */}
-      <div className={`flex items-center space-x-3 px-4 py-2 rounded-full ${statusInfo.bgColor}`}>
+    <div className="flex flex-col items-center space-y-4">
+      {/* Status Display - Dark Theme */}
+      <div className={`flex items-center space-x-3 px-4 py-3 rounded-xl backdrop-blur-sm border ${statusInfo.bgColor}`}>
         <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
         <span className={`font-medium ${statusInfo.color}`}>
           {statusInfo.text}
         </span>
-        {/* ✅ TTS Status for screen readers and debug */}
+        {/* TTS Status */}
         {ttsSupported && (
-          <span className={`text-xs px-2 py-1 rounded ${isActivated ? 'bg-green-200 text-green-700' : 'bg-yellow-200 text-yellow-700'}`}>
+          <span className={`text-xs px-2 py-1 rounded-full ${isActivated ? 'bg-green-500/20 text-green-300 border border-green-400/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/30'}`}>
             TTS: {isActivated ? 'Đã kích hoạt' : 'Cần kích hoạt'}
           </span>
         )}
       </div>
 
-      {/* ✅ ACCESSIBILITY: Voice-only instructions */}
+      {/* Voice-only instructions - Dark Theme */}
       {conversationState === 'idle' && (
-        <div className="w-full max-w-md p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="text-sm text-blue-700 text-center">
-            <strong>🎤 Hệ thống sẵn sàng</strong><br/>
+        <div className="w-full max-w-md p-4 bg-purple-900/30 backdrop-blur-sm border border-purple-400/30 rounded-xl">
+          <div className="text-sm text-purple-200 text-center">
+            <strong className="text-purple-100">🎤 Hệ thống sẵn sàng</strong><br/>
             Hãy bắt đầu nói để tương tác với ứng dụng.<br/>
             {isActivated ? (
-              <span className="text-xs text-green-700">🔊 Chức năng đọc đã sẵn sàng</span>
+              <span className="text-xs text-green-300">🔊 Chức năng đọc đã sẵn sàng</span>
             ) : (
-              <span className="text-xs text-yellow-700">⚠️ Cần kích hoạt chức năng đọc để nghe phản hồi</span>
+              <span className="text-xs text-yellow-300">⚠️ Cần kích hoạt chức năng đọc để nghe phản hồi</span>
             )}
           </div>
           
           {/* Keyboard shortcuts info */}
-          <div className="mt-3 pt-2 border-t border-blue-200">
-            <div className="text-xs text-blue-600 text-center">
-              <strong>⌨️ Phím tắt:</strong><br/>
+          <div className="mt-3 pt-2 border-t border-purple-400/30">
+            <div className="text-xs text-purple-300 text-center">
+              <strong className="text-purple-200">⌨️ Phím tắt:</strong><br/>
               {!isActivated && <span>{isMac ? 'Cmd + Shift + Space' : 'Ctrl + Shift + Space'}: Kích hoạt đọc<br/></span>}
               {isMac ? 'Cmd + S' : 'Ctrl + S'}: Dừng trò chuyện
             </div>
@@ -372,22 +372,22 @@ export const VoiceController: React.FC<VoiceControllerProps> = ({
         </div>
       )}
 
-      {/* ✅ TTS ACTIVATION: Required due to browser autoplay policies */}
+      {/* TTS ACTIVATION - Dark Theme */}
       {!isActivated && ttsSupported && (
-        <div className="w-full max-w-md p-4 bg-orange-50 border border-orange-200 rounded-lg">
-          <div className="text-sm text-orange-700 text-center">
-            <strong>🔊 Kích hoạt chức năng đọc</strong><br/>
+        <div className="w-full max-w-md p-4 bg-gradient-to-br from-orange-900/30 to-red-900/30 backdrop-blur-sm border border-orange-400/30 rounded-xl">
+          <div className="text-sm text-orange-200 text-center">
+            <strong className="text-orange-100">🔊 Kích hoạt chức năng đọc</strong><br/>
             Để nghe phản hồi từ AI, vui lòng sử dụng một trong các cách sau:<br/>
-            <span className="text-xs">(Chỉ cần làm một lần)</span>
+            <span className="text-xs text-orange-300">(Chỉ cần làm một lần)</span>
           </div>
           
-          <div className="mt-2 text-xs text-orange-600 text-center">
-            ⌨️ <strong>{isMac ? 'Cmd + Shift + Space' : 'Ctrl + Shift + Space'}</strong> hoặc nhấn nút bên dưới
+          <div className="mt-2 text-xs text-orange-300 text-center">
+            ⌨️ <strong className="text-orange-200">{isMac ? 'Cmd + Shift + Space' : 'Ctrl + Shift + Space'}</strong> hoặc nhấn nút bên dưới
           </div>
           
           <button
             onClick={handleManualActivation}
-            className="mt-3 w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
+            className="mt-3 w-full px-4 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-500 hover:to-red-500 transition-all duration-200 font-medium shadow-lg hover:shadow-xl hover:scale-105"
             title={`Hoặc nhấn ${isMac ? 'Cmd + Shift + Space' : 'Ctrl + Shift + Space'}`}
           >
             🔊 Kích hoạt chức năng đọc
@@ -395,16 +395,16 @@ export const VoiceController: React.FC<VoiceControllerProps> = ({
         </div>
       )}
 
-      {/* Error Display for TTS activation issues */}
+      {/* Error Display for TTS - Dark Theme */}
       {ttsError && (
-        <div className="w-full max-w-md p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">
-            <strong>Lỗi TTS:</strong> {ttsError}
+        <div className="w-full max-w-md p-3 bg-red-900/30 backdrop-blur-sm border border-red-400/30 rounded-xl">
+          <p className="text-sm text-red-200">
+            <strong className="text-red-100">Lỗi TTS:</strong> {ttsError}
           </p>
           {!isActivated && (
             <button
               onClick={handleManualActivation}
-              className="mt-2 w-full px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+              className="mt-2 w-full px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-500 hover:to-red-600 transition-all duration-200 text-sm shadow-lg"
             >
               🔄 Thử kích hoạt lại
             </button>
@@ -412,36 +412,34 @@ export const VoiceController: React.FC<VoiceControllerProps> = ({
         </div>
       )}
 
-      {/* Transcript Display */}
+      {/* Transcript Display - Dark Theme */}
       {transcript && (
-        <div className="w-full max-w-md p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-700">
-            <strong>Bạn đang nói:</strong> {transcript}
+        <div className="w-full max-w-md p-3 bg-gray-800/30 backdrop-blur-sm border border-gray-400/30 rounded-xl">
+          <p className="text-sm text-gray-200">
+            <strong className="text-gray-100">Bạn đang nói:</strong> <span className="text-purple-300">{transcript}</span>
           </p>
         </div>
       )}
 
-      {/* Last Agent Response */}
+      {/* Last Agent Response - Dark Theme */}
       {lastProcessedResponse && (
-        <div className="w-full max-w-md p-3 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-700">
-            <strong>AI đã nói:</strong> {lastProcessedResponse.substring(0, 100)}
-            {lastProcessedResponse.length > 100 ? '...' : ''}
+        <div className="w-full max-w-md p-3 bg-blue-900/30 backdrop-blur-sm border border-blue-400/30 rounded-xl">
+          <p className="text-sm text-blue-200">
+            <strong className="text-blue-100">AI đã nói:</strong> <span className="text-blue-300">{lastProcessedResponse.substring(0, 100)}
+            {lastProcessedResponse.length > 100 ? '...' : ''}</span>
           </p>
         </div>
       )}
 
-      {/* ✅ NO BUTTONS - Purely voice-driven interface */}
-      {/* Only show emergency stop for extreme cases */}
+      {/* Emergency stop - Dark Theme */}
       {conversationState !== 'idle' && (
         <div className="text-center">
-          <div className="text-xs text-gray-500 mb-2">
+          <div className="text-xs text-purple-400 mb-2">
             Nói "dừng trò chuyện" để dừng hệ thống
           </div>
-          {/* Emergency visual control only - hidden by default for screen readers */}
           <button
             onClick={stopConversation}
-            className="sr-only focus:not-sr-only px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs"
+            className="sr-only focus:not-sr-only px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-500 hover:to-red-600 transition-all duration-200 text-xs shadow-lg"
             aria-label="Dừng trò chuyện - chỉ dùng khi cần thiết"
           >
             Dừng khẩn cấp
@@ -449,65 +447,32 @@ export const VoiceController: React.FC<VoiceControllerProps> = ({
         </div>
       )}
 
-      {/* Error Display - only for STT errors (TTS errors handled above) */}
+      {/* STT Error Display - Dark Theme */}
       {sttError && (
-        <div className="w-full max-w-md p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">
-            <strong>Lỗi nhận diện giọng nói:</strong> {sttError}
+        <div className="w-full max-w-md p-3 bg-red-900/30 backdrop-blur-sm border border-red-400/30 rounded-xl">
+          <p className="text-sm text-red-200">
+            <strong className="text-red-100">Lỗi nhận diện giọng nói:</strong> {sttError}
           </p>
         </div>
       )}
 
-      {/* Support Check */}
+      {/* Support Check - Dark Theme */}
       {!isSupported && (
-        <div className="w-full max-w-md p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-700">
-            <strong>Cảnh báo:</strong> Trình duyệt không hỗ trợ Web Speech API. 
+        <div className="w-full max-w-md p-3 bg-yellow-900/30 backdrop-blur-sm border border-yellow-400/30 rounded-xl">
+          <p className="text-sm text-yellow-200">
+            <strong className="text-yellow-100">Cảnh báo:</strong> Trình duyệt không hỗ trợ Web Speech API. 
             Vui lòng sử dụng Chrome, Edge, hoặc Safari.
           </p>
         </div>
       )}
 
-      {/* ✅ SECURITY CONTEXT: According to Web Speech API documentation */}
+      {/* Security Context - Dark Theme */}
       {!browserSupport.isSecureContext && (
-        <div className="w-full max-w-md p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">
-            <strong>Bảo mật:</strong> Web Speech API yêu cầu HTTPS hoặc localhost. 
+        <div className="w-full max-w-md p-3 bg-red-900/30 backdrop-blur-sm border border-red-400/30 rounded-xl">
+          <p className="text-sm text-red-200">
+            <strong className="text-red-100">Bảo mật:</strong> Web Speech API yêu cầu HTTPS hoặc localhost. 
             Hiện tại đang sử dụng HTTP không bảo mật.
           </p>
-        </div>
-      )}
-
-      {/* Status Debug Info (for development) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="w-full max-w-md p-2 bg-gray-100 rounded text-xs text-gray-600">
-          <p>State: {conversationState}</p>
-          <p>STT: {isListening ? 'listening' : 'stopped'} | TTS: {isSpeaking() ? 'speaking' : 'stopped'}</p>
-          <p>Support: STT={sttSupported ? '✓' : '✗'} | TTS={ttsSupported ? '✓' : '✗'}</p>
-          <p>TTS Activated: {isActivated ? '✓' : '✗'}</p>
-          <p>Secure Context: {browserSupport.isSecureContext ? '✓' : '✗'}</p>
-          <p>Speech Synthesis: {browserSupport.speechSynthesis ? '✓' : '✗'}</p>
-          <p>Speech Recognition: {browserSupport.speechRecognition ? '✓' : '✗'}</p>
-        </div>
-      )}
-
-      {/* ✅ TESTING: Quick test button for development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="w-full max-w-md p-2 bg-gray-50 rounded">
-          <button
-            onClick={() => {
-              console.log('🧪 Testing direct speechSynthesis API');
-              if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-                const testUtterance = new SpeechSynthesisUtterance('Đây là thử nghiệm');
-                testUtterance.lang = 'vi-VN';
-                window.speechSynthesis.speak(testUtterance);
-              }
-            }}
-            className="w-full px-3 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700"
-          >
-            🧪 Test Direct API
-          </button>
         </div>
       )}
     </div>
